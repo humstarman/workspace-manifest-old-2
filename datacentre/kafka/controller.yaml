@@ -1,0 +1,57 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  namespace: datacentre
+  name: kafka
+spec:
+  serviceName: "kafka"
+  podManagementPolicy: Parallel
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        component: kafka
+    spec:
+      terminationGracePeriodSeconds: 10
+      initContainers:
+        - name: chk-svc
+          image: alpine:latest 
+          command:
+            - /bin/sh
+            - -c
+            - "for i in $(seq -s ' ' 1 60); do sleep 1; if getent hosts zookeeper.datacentre; then exit 0; fi; done; exit 1"
+      containers:
+        - name: kafka
+          image: 172.31.78.217:5000/kafka:v3
+          command: ["/entrypoint.sh"]
+          env:
+            - name: N_NODES
+              value: "3"
+            - name: DSCV
+              value: "zookeeper"
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: TRIES
+              valueFrom:
+                configMapKeyRef:
+                  name: dc-config
+                  key: tries 
+          volumeMounts:
+            - name: gluster-volume
+              mountPath: "/mnt"
+            - name: host-time
+              mountPath: /etc/localtime
+              readOnly: true
+      volumes:
+        - name: gluster-volume
+          persistentVolumeClaim:
+            claimName: glusterfs-pvc
+        - name: host-time
+          hostPath:
+            path: /etc/localtime

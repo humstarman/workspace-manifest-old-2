@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: datacentre
+  labels:
+    proxy: kafka
+  name: kafka
+spec:
+  type: ClusterIP
+  ports:
+  - name: api
+    port: 9092
+    targetPort: 9092
+  selector:
+    component: kafka

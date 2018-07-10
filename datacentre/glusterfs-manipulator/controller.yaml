@@ -1,0 +1,27 @@
+apiVersion: extensions/v1beta1 
+kind: Deployment 
+metadata:
+  namespace: datacentre
+  name: glusterfs-manipulator
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: glusterfs-manipulator
+    spec:
+      terminationGracePeriodSeconds: 1
+      containers:
+      - name: glusterfs-manipulator
+        image: busybox 
+        command:
+        - /bin/sh
+        - -c
+        - "while true; do sleep 60; done"
+        volumeMounts:
+        - name: gluster-volume
+          mountPath: "/mnt"
+      volumes:
+      - name: gluster-volume
+        persistentVolumeClaim:
+          claimName: glusterfs-pvc

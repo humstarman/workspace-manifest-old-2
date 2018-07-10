@@ -1,0 +1,55 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet 
+metadata:
+  namespace: datacentre
+  name: cassandra-seed
+spec:
+  serviceName: "cassandra-seed"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: cassandra-seed
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: cassandra-seed
+          image: 172.31.78.217:5000/cassandra:v3
+          command: ["/start-seed.sh"]
+          env:
+            - name: CLUSTER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: dc-config
+                  key: cassandra.cluster-name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: TRIES
+              valueFrom:
+                configMapKeyRef:
+                  name: dc-config
+                  key: tries
+          ports:
+            - containerPort: 7000 
+            - containerPort: 7199 
+            - containerPort: 9042 
+            - containerPort: 9160 
+          volumeMounts:
+            - name: gluster-volume
+              mountPath: "/mnt"
+            - name: host-time
+              mountPath: /etc/localtime
+              readOnly: true
+      volumes:
+        - name: gluster-volume
+          persistentVolumeClaim:
+            claimName: glusterfs-pvc
+        - name: host-time
+          hostPath:
+            path: /etc/localtime
